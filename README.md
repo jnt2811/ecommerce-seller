@@ -1,1 +1,1 @@
-# ecommerce-seller
+# react-init
