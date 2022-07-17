@@ -75,6 +75,10 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
+    position: "sticky",
+    top: 0,
+    zIndex: 10,
+    boxShadow: "0 0 5px #00000025",
   },
   logo: {
     fontSize: 30,

@@ -22,7 +22,7 @@ export const GET_PRODUCTS = gql`
         UPDATE_AT
         STATE
       }
-      CATEGORIES {
+      CATEGORY {
         ID
         CATEGORIES_NAME
         SLUG
@@ -58,6 +58,7 @@ export const ADD_PRODUCT = gql`
       status
       message
       error
+      PRODUCT_ID
     }
   }
 `;
@@ -68,6 +69,36 @@ export const UPDATE_PRODUCT = gql`
       status
       message
       error
+    }
+  }
+`;
+
+export const ADD_VOUCHER_REF = gql`
+  mutation AddVoucherRef($vouchers: [String]!, $products: [String]!) {
+    addVoucherRef(vouchers: $vouchers, products: $products) {
+      status
+      message
+      error
+    }
+  }
+`;
+
+export const SINGLE_UPLOAD = gql`
+  mutation SingleUpload($file: Upload!) {
+    singleUpload(file: $file) {
+      filename
+      mimetype
+      encoding
+    }
+  }
+`;
+
+export const MULTIPLE_UPLOAD = gql`
+  mutation MultipleUpload($file: [Upload]!) {
+    multipleUpload(file: $file) {
+      filename
+      mimetype
+      encoding
     }
   }
 `;

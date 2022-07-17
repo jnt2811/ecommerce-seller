@@ -3,6 +3,8 @@ import { Layout, Menu } from "antd";
 import { useHistory } from "react-router-dom";
 import { paths } from "../constants";
 
+const PRODUCT_TAB = "product_tab";
+
 export const Sider = () => {
   const history = useHistory();
 
@@ -10,7 +12,13 @@ export const Sider = () => {
 
   return (
     <Layout.Sider style={styles.container}>
-      <Menu items={items} theme="dark" mode="inline" onClick={onChange} />
+      <Menu
+        items={items}
+        theme="dark"
+        mode="inline"
+        onClick={onChange}
+        defaultOpenKeys={[PRODUCT_TAB]}
+      />
     </Layout.Sider>
   );
 };
@@ -22,7 +30,7 @@ const items = [
     icon: <DashboardOutlined />,
   },
   {
-    key: "product_tab",
+    key: PRODUCT_TAB,
     label: "Products",
     icon: <ShopOutlined />,
     children: [
@@ -34,6 +42,10 @@ const items = [
         key: paths.NEW_PRODUCT,
         label: "Add product",
       },
+      {
+        key: paths.VOUCHERS,
+        label: "All vouchers",
+      },
     ],
   },
 ];
@@ -42,5 +54,8 @@ const styles = {
   container: {
     height: "calc(100vh - 64px)",
     overflow: "auto",
+    position: "sticky",
+    top: 64,
+    zIndex: 10,
   },
 };

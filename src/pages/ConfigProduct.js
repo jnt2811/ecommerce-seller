@@ -1,11 +1,11 @@
 import { useHistory, useLocation, useParams } from "react-router-dom";
 import { paths } from "../constants";
-import { Topbar } from "../components";
+import { TextEditor, Topbar, UploadGallery } from "../components";
 import { useAuth } from "../contexts/AuthContext";
 import {
   Button,
   Col,
-  Divider,
+  Collapse,
   Form,
   Input,
   InputNumber,
@@ -15,9 +15,18 @@ import {
   Select,
   Spin,
 } from "antd";
-import { ADD_PRODUCT, GET_PRODUCTS, UPDATE_PRODUCT } from "../queries/products.gql";
+import {
+  ADD_PRODUCT,
+  ADD_VOUCHER_REF,
+  GET_PRODUCTS,
+  MULTIPLE_UPLOAD,
+  SINGLE_UPLOAD,
+  UPDATE_PRODUCT,
+} from "../queries/products.gql";
 import { useMutation, useQuery } from "@apollo/client";
 import { useEffect, useState } from "react";
+import { GET_CATEGORIES } from "../queries";
+import { currencyParser, formatNumberToPrice } from "../helpers";
 
 export const ConfigProduct = () => {
   const history = useHistory();
@@ -26,32 +35,55 @@ export const ConfigProduct = () => {
   const [form] = Form.useForm();
   const isAddNew = pathname === paths.NEW_PRODUCT;
   const { currentUser } = useAuth();
+  const vouchersValue = Form.useWatch(["VOUCHERS"], form);
   const [skip, setSkip] = useState(true);
   const [currentProduct, setCurrentProduct] = useState();
+  const [fileList, setFileList] = useState([]);
+  const [newFileList, setNewFileList] = useState([]);
   const {
     data: item_data,
     loading: item_loading,
     error: item_error,
-  } = useQuery(GET_PRODUCTS, { variables: { id }, skip });
+  } = useQuery(GET_PRODUCTS, { variables: { id }, skip, fetchPolicy: "no-cache" });
   const [addProduct, { data: add_data, loading: add_loading, error: add_error, reset: add_reset }] =
-    useMutation(ADD_PRODUCT);
+    useMutation(ADD_PRODUCT, { fetchPolicy: "no-cache" });
   const [
     updateProduct,
     { data: update_data, loading: update_loading, error: update_error, reset: update_reset },
-  ] = useMutation(UPDATE_PRODUCT);
+  ] = useMutation(UPDATE_PRODUCT, { fetchPolicy: "no-cache" });
+  const {
+    data: list_data,
+    loading: list_loading,
+    error: list_error,
+  } = useQuery(GET_CATEGORIES, { fetchPolicy: "no-cache" });
+  const [
+    addVoucherRef,
+    { data: voucher_ref_data, loading: voucher_ref_loading, error: voucher_ref_error },
+  ] = useMutation(ADD_VOUCHER_REF, { fetchPolicy: "no-cache" });
+  const [uploadImage, { data: upload_data, loading: upload_loading, error: upload_error }] =
+    useMutation(SINGLE_UPLOAD, { fetchPolicy: "no-cache" });
+  const [shortDesc, setShortDesc] = useState();
+  const [longDesc, setLongDesc] = useState();
 
   console.log("get product", item_data, item_loading, item_error);
   console.log("add new product", add_data, add_loading, add_error);
   console.log("update product", update_data, update_loading, update_error);
+  console.log("get list categories", list_loading, list_error, list_data);
+  console.log("add voucher ref", voucher_ref_data, voucher_ref_loading, voucher_ref_error);
+  console.log("upload images", upload_data, upload_loading, upload_error);
 
   useEffect(() => {
-    if (!isAddNew && id) {
-      setSkip(false);
-    }
+    if (!isAddNew && id) setSkip(false);
   }, [isAddNew, id]);
 
   useEffect(() => {
     if (add_data && add_data?.addNewProduct?.status === "OK") {
+      addVoucherRef({
+        variables: {
+          products: [add_data?.addNewProduct?.PRODUCT_ID],
+          vouchers: [...vouchersValue],
+        },
+      });
       notification.success({ message: "Add new product successfully", placement: "bottomLeft" });
       add_reset();
     }
@@ -60,6 +92,12 @@ export const ConfigProduct = () => {
 
   useEffect(() => {
     if (update_data && update_data?.updateProduct?.status === "OK") {
+      const variables = {
+        products: [id],
+        vouchers: [...vouchersValue],
+      };
+      console.log("add ref", variables);
+      addVoucherRef({ variables });
       notification.success({ message: "Update product successfully", placement: "bottomLeft" });
       update_reset();
     }
@@ -69,14 +107,32 @@ export const ConfigProduct = () => {
   useEffect(() => {
     if (item_data && item_data?.getProducts?.length === 1) {
       const product = item_data?.getProducts[0];
-      form.setFields(Object.keys(product).map((name) => ({ name, value: product[name] })));
+      form.setFields(
+        Object.keys(product).map((name) => {
+          let value = product[name];
+          if (name === "CATEGORY") {
+            value = product[name]?.ID;
+            name = "CATEGORY_ID";
+          }
+          return { name, value };
+        })
+      );
       setCurrentProduct(product);
+      setShortDesc(product?.DESCRIPTION);
+      setLongDesc(product?.DETAILS);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item_data]);
 
   const onFinish = (values) => {
     values.SELLER_ID = currentUser.ID;
+    values.DESCRIPTION = shortDesc;
+    values.DETAILS = longDesc;
+
+    delete values.VOUCHERS;
+
+    newFileList.forEach((file) => uploadImage({ variables: { file } }));
+    return;
 
     if (isAddNew) {
       console.log("add product", values);
@@ -116,41 +172,71 @@ export const ConfigProduct = () => {
           onBack={() => history.push(paths.ALL_PRODUCTS)}
         />
 
-        <Divider orientation="left">Basic Information</Divider>
+        <Collapse defaultActiveKey="1">
+          <Collapse.Panel key="1" header="Basic Information">
+            <Row gutter={10}>
+              <Col span={8}>
+                <Form.Item label="Product name" name="PRODUCT_NAME" rules={[{ required: true }]}>
+                  <Input />
+                </Form.Item>
+              </Col>
 
-        <Row gutter={10}>
-          <Col span={8}>
-            <Form.Item label="Product name" name="PRODUCT_NAME" rules={[{ required: true }]}>
-              <Input />
+              <Col span={8}>
+                <Form.Item label="Category" name="CATEGORY_ID" rules={[{ required: true }]}>
+                  <Select loading={list_loading}>
+                    {list_data?.getCategories?.map((category) => (
+                      <Select.Option key={category.ID} value={category.ID}>
+                        {category.CATEGORIES_NAME}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+
+              <Col span={8}>
+                <Form.Item label="Price" name="PRICE" rules={[{ required: true }]}>
+                  <InputNumber
+                    min={0}
+                    addonAfter="VND"
+                    style={{ width: "100%" }}
+                    parser={currencyParser}
+                    formatter={formatNumberToPrice}
+                  />
+                </Form.Item>
+              </Col>
+
+              <Col span={24}>
+                <Form.Item label="Vouchers" name="VOUCHERS" rules={[{ required: true }]}>
+                  <Select loading={list_loading} mode="multiple">
+                    {list_data?.getCategories?.map((category) => (
+                      <Select.Option key={category.ID} value={category.ID}>
+                        {category.CATEGORIES_NAME}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+          </Collapse.Panel>
+
+          <Collapse.Panel key="2" header="Product Description">
+            <Form.Item label="Short Description" name="DESCRIPTION" rules={[{ required: true }]}>
+              <TextEditor value={shortDesc} setValue={setShortDesc} />
             </Form.Item>
-          </Col>
 
-          <Col span={8}>
-            <Form.Item label="Category" name="CATEGORY_ID" rules={[{ required: true }]}>
-              <Select style={{ width: "100%" }}>
-                <Select.Option value="a">a</Select.Option>
-              </Select>
+            <Form.Item label="Detail Description" name="DETAILS" rules={[{ required: true }]}>
+              <TextEditor value={longDesc} setValue={setLongDesc} />
             </Form.Item>
-          </Col>
+          </Collapse.Panel>
 
-          <Col span={8}>
-            <Form.Item label="Price" name="PRICE" rules={[{ required: true }]}>
-              <InputNumber min={0} addonAfter="VND" style={{ width: "100%" }} />
-            </Form.Item>
-          </Col>
-        </Row>
-
-        <Divider orientation="left">Product Description</Divider>
-
-        <Form.Item label="Short Description" name="DESCRIPTION" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-
-        <Form.Item label="Detail Description" name="DETAILS" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-
-        <Divider orientation="left">Media</Divider>
+          <Collapse.Panel key="3" header="Media">
+            <UploadGallery
+              fileList={fileList}
+              setFileList={setFileList}
+              setNewFileList={setNewFileList}
+            />
+          </Collapse.Panel>
+        </Collapse>
       </Form>
     </Spin>
   );

@@ -1,30 +1,39 @@
-import { useMutation } from "@apollo/client";
-import { Button, Col, Form, Input, Row, Select, Typography } from "antd";
+import { useMutation, useQuery } from "@apollo/client";
+import { Button, Col, Form, Input, notification, Row, Select, Typography } from "antd";
 import React, { useEffect, useState } from "react";
-import { keys } from "../constants";
+import { Link } from "react-router-dom";
+import { keys, paths } from "../constants";
 import { useAuth } from "../contexts/AuthContext";
 import { encrypt256 } from "../helpers";
-import { ADD_SELLER } from "../queries";
+import { ADD_SELLER, GET_CATEGORIES } from "../queries";
 
 export const Signup = () => {
   const [form] = Form.useForm();
   const [addSeller, { data: add_data, loading: add_loading, error: add_error }] =
     useMutation(ADD_SELLER);
+  const { data: list_data, loading: list_loading, error: list_error } = useQuery(GET_CATEGORIES);
   const [tempUserData, setTempUserData] = useState();
   const { setCurrentUser } = useAuth();
 
   console.log("add new seller", add_data, add_loading, add_error);
+  console.log("get list categories", list_loading, list_error, list_data);
 
   useEffect(() => {
-    if (add_data && add_data?.addNewSeller?.status === "OK") {
-      console.log("SIGNUP SUCCESS!");
-      form.resetFields();
-      setCurrentUser(tempUserData);
+    if (add_data) {
+      if (add_data?.addNewSeller?.status === "OK") {
+        form.resetFields();
+        setCurrentUser(tempUserData);
 
-      const token = add_data?.addNewSeller?.token;
+        const token = add_data?.addNewSeller?.token;
 
-      localStorage.setItem(keys.ACCESS_TOKEN, token);
-      localStorage.setItem(keys.USER_INFO, JSON.stringify(tempUserData));
+        localStorage.setItem(keys.ACCESS_TOKEN, token);
+        localStorage.setItem(keys.USER_INFO, JSON.stringify(tempUserData));
+
+        notification.success({ message: "Signup successfully!" });
+      } else if (add_data?.addNewSeller?.status === "KO") {
+        console.log("SIGNUP FAILED!");
+        notification.error({ message: add_data?.addNewSeller?.message });
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [add_data]);
@@ -62,8 +71,12 @@ export const Signup = () => {
           </Form.Item>
 
           <Form.Item label="Main category" name="MAIN_CATEGORIES" rules={[{ required: true }]}>
-            <Select>
-              <Select.Option value="a">a</Select.Option>
+            <Select loading={list_loading}>
+              {list_data?.getCategories?.map((category) => (
+                <Select.Option key={category.ID} value={category.ID}>
+                  {category.CATEGORIES_NAME}
+                </Select.Option>
+              ))}
             </Select>
           </Form.Item>
 
@@ -96,6 +109,11 @@ export const Signup = () => {
             Submit
           </Button>
         </Form>
+
+        <br />
+        <div>
+          Already have account? <Link to={paths.LOGIN}>Login now!</Link>
+        </div>
       </Col>
     </Row>
   );

@@ -6,4 +6,5 @@ export const paths = {
   ALL_PRODUCTS: "/products",
   NEW_PRODUCT: "/new-product",
   SETTINGS: "/settings",
+  VOUCHERS: "/vouchers",
 };

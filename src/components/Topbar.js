@@ -9,28 +9,31 @@ export const Topbar = ({
   loadingSearch = false,
   extraContent = <></>,
   onBack,
+  style,
 }) => {
   return (
-    <PageHeader
-      style={styles}
-      onBack={onBack}
-      title={title}
-      subTitle={
-        showAddNew && (
-          <Button type="primary" onClick={() => onAddNew()}>
-            Add New
-          </Button>
-        )
-      }
-      extra={
-        <Space>
-          {extraContent}
-          {showSearch && (
-            <Input.Search placeholder="Search..." onSearch={onSearch} loading={loadingSearch} />
-          )}
-        </Space>
-      }
-    />
+    <div style={style}>
+      <PageHeader
+        style={styles}
+        onBack={onBack}
+        title={title}
+        subTitle={
+          showAddNew && (
+            <Button type="primary" onClick={() => onAddNew()}>
+              Add New
+            </Button>
+          )
+        }
+        extra={
+          <Space>
+            {extraContent}
+            {showSearch && (
+              <Input.Search placeholder="Search..." onSearch={onSearch} loading={loadingSearch} />
+            )}
+          </Space>
+        }
+      />
+    </div>
   );
 };
 

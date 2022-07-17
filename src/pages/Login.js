@@ -1,7 +1,8 @@
 import { useMutation } from "@apollo/client";
 import { Button, Col, Form, Input, notification, Row, Typography } from "antd";
 import { useEffect } from "react";
-import { keys } from "../constants";
+import { Link } from "react-router-dom";
+import { keys, paths } from "../constants";
 import { useAuth } from "../contexts/AuthContext";
 import { encrypt256 } from "../helpers";
 import { LOGIN_SELLER } from "../queries";
@@ -17,7 +18,6 @@ export const Login = () => {
   useEffect(() => {
     if (login_data) {
       if (login_data?.sellerLogin?.status === "OK") {
-        console.log("LOGIN SUCCESS!");
         form.resetFields();
 
         const token = login_data?.sellerLogin?.token;
@@ -28,7 +28,7 @@ export const Login = () => {
         localStorage.setItem(keys.ACCESS_TOKEN, token);
         localStorage.setItem(keys.USER_INFO, JSON.stringify(user_info));
 
-        notification.success({ message: "Login success" });
+        notification.success({ message: "Welcome back!" });
       } else {
         console.log("LOGIN FAILED!");
         notification.error({ message: login_data?.sellerLogin?.message });
@@ -65,6 +65,11 @@ export const Login = () => {
             Submit
           </Button>
         </Form>
+
+        <br />
+        <div>
+          Have not had account yet? <Link to={paths.SIGNUP}>Signup now!</Link>
+        </div>
       </Col>
     </Row>
   );
