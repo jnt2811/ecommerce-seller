@@ -8,16 +8,18 @@ import { formatNumberToPrice } from "../helpers";
 import moment from "moment";
 import { GET_PRODUCTS, UPDATE_PRODUCT } from "../queries";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
+import { useAuth } from "../contexts/AuthContext";
 
 export const AllProducts = () => {
   const history = useHistory();
+  const { currentUser } = useAuth();
   const [searchValue, setSearchValue] = useState();
   const {
     loading: list_loading,
     error: list_error,
     data: list_data,
   } = useQuery(GET_PRODUCTS, {
-    variables: { searchString: searchValue },
+    variables: { searchString: searchValue, sellerId: currentUser?.ID },
     fetchPolicy: "no-cache",
   });
 
@@ -86,9 +88,16 @@ export const AllProducts = () => {
 };
 
 const DeleteButton = ({ record, searchValue }) => {
+  const { currentUser } = useAuth();
   const [updateProduct, { data: update_data, loading: update_loading, error: update_error }] =
     useMutation(UPDATE_PRODUCT, {
-      refetchQueries: [{ query: GET_PRODUCTS, variables: { searchString: searchValue } }],
+      refetchQueries: [
+        {
+          query: GET_PRODUCTS,
+          variables: { searchString: searchValue, sellerId: currentUser?.ID },
+          // fetchPolicy: "no-cache",
+        },
+      ],
     });
 
   console.log(`delete product ID ${record?.ID}:`, update_data, update_loading, update_error);
@@ -99,6 +108,7 @@ const DeleteButton = ({ record, searchValue }) => {
       onConfirm={() =>
         updateProduct({
           variables: { product: { ID: record.ID, STATE: false } },
+          fetchPolicy: "no-cache",
         })
       }
     >

@@ -6,3 +6,4 @@ export * from "./AllProducts";
 export * from "./ConfigProduct";
 export * from "./NoMatch";
 export * from "./Vouchers";
+export * from "./Orders";

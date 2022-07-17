@@ -1,4 +1,4 @@
-import { DashboardOutlined, ShopOutlined } from "@ant-design/icons";
+import { DashboardOutlined, NotificationOutlined, ShopOutlined } from "@ant-design/icons";
 import { Layout, Menu } from "antd";
 import { useHistory } from "react-router-dom";
 import { paths } from "../constants";
@@ -47,6 +47,11 @@ const items = [
         label: "All vouchers",
       },
     ],
+  },
+  {
+    key: paths.ORDERS,
+    label: "Orders",
+    icon: <NotificationOutlined />,
   },
 ];
 

@@ -1,5 +1,5 @@
 import { useHistory, useLocation, useParams } from "react-router-dom";
-import { paths } from "../constants";
+import { keys, paths } from "../constants";
 import { TextEditor, Topbar, UploadGallery } from "../components";
 import { useAuth } from "../contexts/AuthContext";
 import {
@@ -20,13 +20,13 @@ import {
   ADD_VOUCHER_REF,
   GET_PRODUCTS,
   MULTIPLE_UPLOAD,
-  SINGLE_UPLOAD,
   UPDATE_PRODUCT,
 } from "../queries/products.gql";
 import { useMutation, useQuery } from "@apollo/client";
 import { useEffect, useState } from "react";
-import { GET_CATEGORIES } from "../queries";
+import { GET_CATEGORIES, GET_VOUCHERS } from "../queries";
 import { currencyParser, formatNumberToPrice } from "../helpers";
+import { nanoid } from "nanoid";
 
 export const ConfigProduct = () => {
   const history = useHistory();
@@ -51,24 +51,27 @@ export const ConfigProduct = () => {
     updateProduct,
     { data: update_data, loading: update_loading, error: update_error, reset: update_reset },
   ] = useMutation(UPDATE_PRODUCT, { fetchPolicy: "no-cache" });
+  const { data: list_data, loading: list_loading, error: list_error } = useQuery(GET_CATEGORIES);
   const {
-    data: list_data,
-    loading: list_loading,
-    error: list_error,
-  } = useQuery(GET_CATEGORIES, { fetchPolicy: "no-cache" });
+    data: vochers_data,
+    loading: vochers_loading,
+    error: vochers_error,
+  } = useQuery(GET_VOUCHERS, { variables: { applyAll: false, sellerId: currentUser?.ID } });
   const [
     addVoucherRef,
     { data: voucher_ref_data, loading: voucher_ref_loading, error: voucher_ref_error },
   ] = useMutation(ADD_VOUCHER_REF, { fetchPolicy: "no-cache" });
-  const [uploadImage, { data: upload_data, loading: upload_loading, error: upload_error }] =
-    useMutation(SINGLE_UPLOAD, { fetchPolicy: "no-cache" });
-  const [shortDesc, setShortDesc] = useState();
-  const [longDesc, setLongDesc] = useState();
+  const [uploadImages, { data: upload_data, loading: upload_loading, error: upload_error }] =
+    useMutation(MULTIPLE_UPLOAD, { fetchPolicy: "no-cache" });
+  const [shortDesc, setShortDesc] = useState("");
+  const [longDesc, setLongDesc] = useState("");
+  const [tempProductValues, setTempProductValues] = useState();
 
   console.log("get product", item_data, item_loading, item_error);
   console.log("add new product", add_data, add_loading, add_error);
   console.log("update product", update_data, update_loading, update_error);
   console.log("get list categories", list_loading, list_error, list_data);
+  console.log("get list vouchers", vochers_data, vochers_loading, vochers_error);
   console.log("add voucher ref", voucher_ref_data, voucher_ref_loading, voucher_ref_error);
   console.log("upload images", upload_data, upload_loading, upload_error);
 
@@ -114,15 +117,44 @@ export const ConfigProduct = () => {
             value = product[name]?.ID;
             name = "CATEGORY_ID";
           }
+          if (name === "VOUCHER") {
+            value = product[name]?.map((item) => item.ID);
+            name = "VOUCHERS";
+          }
           return { name, value };
         })
       );
       setCurrentProduct(product);
       setShortDesc(product?.DESCRIPTION);
       setLongDesc(product?.DETAILS);
+      try {
+        let gallery = JSON.parse(product?.GALLERY);
+        gallery = gallery?.map((item) => ({
+          thumbUrl: keys.SERVER_URI + item,
+          uid: nanoid(20),
+          old_img: true,
+        }));
+        console.log("gallery", gallery);
+        setFileList(gallery);
+      } catch (error) {
+        console.log(error);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item_data]);
+
+  useEffect(() => {
+    if (upload_data && upload_data?.multipleUpload?.status === "OK") {
+      if (isAddNew) handleAddNew(tempProductValues, upload_data?.multipleUpload?.URL);
+      else {
+        const oldImages = fileList
+          .filter((item) => item.old_img === true)
+          .map((item) => item.thumbUrl.replace(keys.SERVER_URI, ""));
+        handleEdit(tempProductValues, [...oldImages, ...upload_data?.multipleUpload?.URL]);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [upload_data]);
 
   const onFinish = (values) => {
     values.SELLER_ID = currentUser.ID;
@@ -131,17 +163,32 @@ export const ConfigProduct = () => {
 
     delete values.VOUCHERS;
 
-    newFileList.forEach((file) => uploadImage({ variables: { file } }));
-    return;
-
-    if (isAddNew) {
-      console.log("add product", values);
-      addProduct({ variables: { products: [values] } });
+    if (newFileList.length > 0) {
+      uploadImages({ variables: { file: newFileList } });
+      setTempProductValues(values);
     } else {
-      values.ID = currentProduct.ID;
-      console.log("edit product", values);
-      updateProduct({ variables: { product: values } });
+      if (isAddNew) handleAddNew(values);
+      else {
+        const oldImages = fileList
+          .filter((item) => item.old_img === true)
+          .map((item) => item.thumbUrl.replace(keys.SERVER_URI, ""));
+        handleEdit(values, oldImages);
+      }
     }
+  };
+
+  const handleAddNew = (values, images = []) => {
+    if (images.length > 0) values.GALLERY = JSON.stringify(images);
+    else values.GALLERY = JSON.stringify([]);
+    console.log("add product", values);
+    addProduct({ variables: { products: [values] } });
+  };
+
+  const handleEdit = (values = {}, images = []) => {
+    values.ID = currentProduct.ID;
+    if (images.length > 0) values.GALLERY = JSON.stringify(images);
+    console.log("edit product", values);
+    updateProduct({ variables: { product: values } });
   };
 
   return (
@@ -207,10 +254,10 @@ export const ConfigProduct = () => {
 
               <Col span={24}>
                 <Form.Item label="Vouchers" name="VOUCHERS" rules={[{ required: true }]}>
-                  <Select loading={list_loading} mode="multiple">
-                    {list_data?.getCategories?.map((category) => (
+                  <Select loading={list_loading} mode="multiple" allowClear>
+                    {vochers_data?.getVouchers?.map((category) => (
                       <Select.Option key={category.ID} value={category.ID}>
-                        {category.CATEGORIES_NAME}
+                        {category.VOUCHER_NAME}
                       </Select.Option>
                     ))}
                   </Select>
@@ -220,13 +267,13 @@ export const ConfigProduct = () => {
           </Collapse.Panel>
 
           <Collapse.Panel key="2" header="Product Description">
-            <Form.Item label="Short Description" name="DESCRIPTION" rules={[{ required: true }]}>
-              <TextEditor value={shortDesc} setValue={setShortDesc} />
-            </Form.Item>
+            <div style={{ marginBottom: 10 }}>Short Description</div>
+            <TextEditor value={shortDesc} setValue={setShortDesc} />
 
-            <Form.Item label="Detail Description" name="DETAILS" rules={[{ required: true }]}>
-              <TextEditor value={longDesc} setValue={setLongDesc} />
-            </Form.Item>
+            <br />
+
+            <div style={{ marginBottom: 10 }}>Detail Description</div>
+            <TextEditor value={longDesc} setValue={setLongDesc} />
           </Collapse.Panel>
 
           <Collapse.Panel key="3" header="Media">

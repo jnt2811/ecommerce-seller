@@ -1,10 +1,11 @@
 import { ApolloClient, InMemoryCache, ApolloProvider } from "@apollo/client";
 import { createUploadLink } from "apollo-upload-client";
+import { keys } from "../constants";
 
 export const client = new ApolloClient({
   // uri: "https://0004-123-16-146-8.ap.ngrok.io/resource",
   cache: new InMemoryCache(),
-  link: createUploadLink({ uri: "https://0004-123-16-146-8.ap.ngrok.io/resource" }),
+  link: createUploadLink({ uri: `${keys.SERVER_URI}/resource` }),
 });
 
 export const ApolloConfig = ({ children }) => {

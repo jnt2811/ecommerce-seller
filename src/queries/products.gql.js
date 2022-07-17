@@ -38,16 +38,19 @@ export const GET_PRODUCTS = gql`
         VOUCHER_NAME
         VOUCHER_CODE
         DISCOUNT_PRICE
+        APPLY_ALL
+        SELLER_ID
         CREATE_AT
         UPDATE_AT
         VALID_UNTIL
         STATE
       }
+      GALLERY
       PRICE
       CREATE_AT
       UPDATE_AT
-      STATE
       PRODUCT_LOCK
+      STATE
     }
   }
 `;
@@ -96,9 +99,9 @@ export const SINGLE_UPLOAD = gql`
 export const MULTIPLE_UPLOAD = gql`
   mutation MultipleUpload($file: [Upload]!) {
     multipleUpload(file: $file) {
-      filename
-      mimetype
-      encoding
+      status
+      message
+      URL
     }
   }
 `;
