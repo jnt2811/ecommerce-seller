@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@apollo/client";
 import { Button, Col, Form, Input, notification, Row, Select, Typography } from "antd";
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { keys, paths } from "../constants";
 import { useAuth } from "../contexts/AuthContext";
@@ -12,7 +12,6 @@ export const Signup = () => {
   const [addSeller, { data: add_data, loading: add_loading, error: add_error }] =
     useMutation(ADD_SELLER);
   const { data: list_data, loading: list_loading, error: list_error } = useQuery(GET_CATEGORIES);
-  const [tempUserData, setTempUserData] = useState();
   const { setCurrentUser } = useAuth();
 
   console.log("add new seller", add_data, add_loading, add_error);
@@ -22,12 +21,14 @@ export const Signup = () => {
     if (add_data) {
       if (add_data?.addNewSeller?.status === "OK") {
         form.resetFields();
-        setCurrentUser(tempUserData);
 
         const token = add_data?.addNewSeller?.token;
+        const seller = add_data?.addNewSeller?.seller;
+
+        setCurrentUser(seller);
 
         localStorage.setItem(keys.ACCESS_TOKEN, token);
-        localStorage.setItem(keys.USER_INFO, JSON.stringify(tempUserData));
+        localStorage.setItem(keys.USER_INFO, JSON.stringify(seller));
 
         notification.success({ message: "Signup successfully!" });
       } else if (add_data?.addNewSeller?.status === "KO") {
@@ -44,8 +45,6 @@ export const Signup = () => {
     console.log(values);
 
     values.PASSWORD = encrypt256(values.PASSWORD);
-
-    setTempUserData(values);
 
     addSeller({ variables: { sellers: [values] } });
   };

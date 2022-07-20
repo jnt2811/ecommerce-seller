@@ -76,8 +76,18 @@ export const ConfigProduct = () => {
   console.log("upload images", upload_data, upload_loading, upload_error);
 
   useEffect(() => {
+    if (isAddNew) {
+      form.resetFields();
+      setSkip(true);
+      setCurrentProduct();
+      setFileList([]);
+      setNewFileList([]);
+      setShortDesc("");
+      setLongDesc("");
+      setTempProductValues();
+    }
     if (!isAddNew && id) setSkip(false);
-  }, [isAddNew, id]);
+  }, [isAddNew, id, form]);
 
   useEffect(() => {
     if (add_data && add_data?.addNewProduct?.status === "OK") {
@@ -121,6 +131,10 @@ export const ConfigProduct = () => {
             value = product[name]?.map((item) => item.ID);
             name = "VOUCHERS";
           }
+          if (name === "PRODUCT_OPTIONS") {
+            if (product[name] === null) value = [];
+            else value = JSON.parse(product[name]);
+          }
           return { name, value };
         })
       );
@@ -160,6 +174,7 @@ export const ConfigProduct = () => {
     values.SELLER_ID = currentUser.ID;
     values.DESCRIPTION = shortDesc;
     values.DETAILS = longDesc;
+    values.PRODUCT_OPTIONS = JSON.stringify(values.PRODUCT_OPTIONS);
 
     delete values.VOUCHERS;
 
@@ -252,8 +267,8 @@ export const ConfigProduct = () => {
                 </Form.Item>
               </Col>
 
-              <Col span={24}>
-                <Form.Item label="Vouchers" name="VOUCHERS" rules={[{ required: true }]}>
+              <Col span={8}>
+                <Form.Item label="Vouchers" name="VOUCHERS">
                   <Select loading={list_loading} mode="multiple" allowClear>
                     {vochers_data?.getVouchers?.map((category) => (
                       <Select.Option key={category.ID} value={category.ID}>
@@ -261,6 +276,30 @@ export const ConfigProduct = () => {
                       </Select.Option>
                     ))}
                   </Select>
+                </Form.Item>
+              </Col>
+
+              <Col span={8}>
+                <Form.Item label="Options" name="PRODUCT_OPTIONS">
+                  <Select
+                    mode="tags"
+                    style={{
+                      width: "100%",
+                    }}
+                    // onChange={handleChangeOptions}
+                    tokenSeparators={[","]}
+                  ></Select>
+                </Form.Item>
+              </Col>
+
+              <Col span={8}>
+                <Form.Item label="Quantity" name="NUMBER_PRODUCT" rules={[{ required: true }]}>
+                  <InputNumber
+                    min={0}
+                    style={{ width: "100%" }}
+                    parser={currencyParser}
+                    formatter={formatNumberToPrice}
+                  />
                 </Form.Item>
               </Col>
             </Row>

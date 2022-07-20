@@ -23,6 +23,8 @@ export const AllProducts = () => {
     fetchPolicy: "no-cache",
   });
 
+  console.log("first", currentUser);
+
   console.log("list products", list_data, list_loading, list_error);
 
   const columns = [
