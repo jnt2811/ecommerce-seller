@@ -5,11 +5,13 @@
   "dependencies": {
     "@ant-design/icons": "^4.7.0",
     "@apollo/client": "^3.6.9",
+    "@react-google-maps/api": "^2.12.1",
     "@tinymce/tinymce-react": "^3.14.0",
     "ahooks": "^3.4.0",
     "antd": "^4.21.6",
     "apollo-upload-client": "^17.0.0",
     "axios": "^0.27.2",
+    "google-map-react": "^2.2.0",
     "graphql": "^16.5.0",
     "moment": "^2.29.4",
     "nanoid": "^4.0.0",

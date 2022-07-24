@@ -34,3 +34,31 @@ export const LOGIN_SELLER = gql`
     }
   }
 `;
+
+export const GET_SELLER = gql`
+  query Query($id: String, $searchString: String) {
+    getSeller(ID: $id, search_string: $searchString) {
+      ID
+      EMAIL
+      PHONE_NUMBER
+      MAIN_CATEGORIES
+      SELLER_NAME
+      RATING
+      LOCATION
+      FOLLOWER
+      CREATE_AT
+      UPDATE_AT
+      STATE
+    }
+  }
+`;
+
+export const UPDATE_SELLER = gql`
+  mutation UpdateSeller($seller: SellerUpdateInput!) {
+    updateSeller(seller: $seller) {
+      status
+      message
+      error
+    }
+  }
+`;
